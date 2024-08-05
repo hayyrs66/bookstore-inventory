@@ -61,7 +61,7 @@ Go an edit the `Path` variable
 
 Click on `New` and paste the path you copied before.
 
-![App Screenshot](https://via.placeholder.com/468x300?text=App+Screenshot+Here)
+![App Screenshot](screenshots/path.jpg)
 
 
 #### 8. In the directory of vcpkg run
