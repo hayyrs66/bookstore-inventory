@@ -32,12 +32,12 @@ Native CRUD project for a bookstore inventory developed in C++ using BTree as da
 
 Now you need to set up vcpkg to install jsoncpp.
 
-#### 5. Clone the vckpg project
+#### 5. Clone the vcpkg project
 ```bash
   git clone https://github.com/microsoft/vcpkg.git
 ```
 
-#### 6. Run a script to build vckpg
+#### 6. Run a script to build vcpkg
 
 ```bash 
   cd vcpkg; .\bootstrap-vcpkg.bat
@@ -95,7 +95,7 @@ The BTreeNode class has BTree as a friend class since these two classes are clos
 
 - **Efficient Data Storage**: Utilizes a B-Tree with a degree of 3 to store book data, ensuring balanced and efficient data management.
 - **CSV Integration**: Supports uploading book data from a CSV file and executing search queries from another CSV file.
-- **Search Functionality**: Provides fast search capabilities to find books based on various criteria.
+- **Search Functionality**: Provides fast search capabilities to find books based on name.
 - **Output Results**: Outputs search results to a text file for easy review.
 - **Modular Design**: The code is organized into distinct classes and files, each with a specific responsibility, enhancing readability and maintainability.
 
