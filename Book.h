@@ -1,42 +1,99 @@
 #pragma once
 #include <iostream>
 #include <json/json.h>
+#include <string>
 
 using namespace std;
 
-class Book
-{
+class Book {
 public:
-	string isbn;
-	string name;
-	string author;
-	string category;
-	string price;
-	string quantity;
+    std::string isbn;
+    std::string name;
+    std::string author;
+    std::string category;
+    std::string price;
+    std::string quantity;
 
-	Book(const string& _isbn, const string& _name, const string& _author, const string& _price, const string& _quantity)
-		: isbn(_isbn), name(_name), author(_author), price(_price), quantity(_quantity) {}
+    // Default constructor
+    Book() {
+    }
 
-	Book() : price("0.0"), quantity("0") {}
+    // Parameterized constructor
+    Book(const std::string &isbn, const std::string &name, const std::string &author,
+         const std::string &category, const std::string &price, const std::string &quantity)
+        : isbn(isbn), name(name), author(author), category(category), price(price), quantity(quantity) {
+    }
 
-	Json::Value toJson() const {
-		Json::Value book;
-		book["isbn"] = isbn;
-		book["name"] = name;
-		book["author"] = author;
-		book["category"] = category;
-		book["price"] = price;
-		book["quantity"] = quantity;
-		return book;
-	}
+    // Copy constructor
+    Book(const Book &other)
+        : isbn(other.isbn), name(other.name), author(other.author), category(other.category),
+          price(other.price), quantity(other.quantity) {
+    }
 
-	static Book fromJson(const Json::Value& book) {
-		return Book(
-			book["isbn"].asString(), 
-			book["name"].asString(), 
-			book["author"].asString(), 
-			book["price"].asString(),
-			book["quantity"].asString()
-		);
-	}
+    // Move constructor
+    Book(Book &&other) noexcept
+        : isbn(std::move(other.isbn)), name(std::move(other.name)), author(std::move(other.author)),
+          category(std::move(other.category)), price(std::move(other.price)), quantity(std::move(other.quantity)) {
+    }
+
+    // Copy assignment operator
+    Book& operator=(const Book &other) {
+        if (this != &other) {
+            isbn = other.isbn;
+            name = other.name;
+            author = other.author;
+            category = other.category;
+            price = other.price;
+            quantity = other.quantity;
+        }
+        return *this;
+    }
+
+    // Move assignment operator
+    Book& operator=(Book &&other) noexcept {
+        if (this != &other) {
+            isbn = std::move(other.isbn);
+            name = std::move(other.name);
+            author = std::move(other.author);
+            category = std::move(other.category);
+            price = std::move(other.price);
+            quantity = std::move(other.quantity);
+
+            // Reset the moved-from object
+            other.isbn.clear();
+            other.name.clear();
+            other.author.clear();
+            other.category.clear();
+            other.price.clear();
+            other.quantity.clear();
+
+        }
+        return *this;
+    }
+
+    // Destructor
+    ~Book() {
+    }
+
+    // Convert to JSON
+    Json::Value toJson() const {
+        Json::Value json;
+        json["isbn"] = isbn;
+        json["name"] = name;
+        json["author"] = author;
+        json["category"] = category;
+        json["price"] = price;
+        json["quantity"] = quantity;
+        return json;
+    }
+
+    // Initialize from JSON
+    void fromJson(const Json::Value &json) {
+        isbn = json["isbn"].asString();
+        name = json["name"].asString();
+        author = json["author"].asString();
+        category = json["category"].asString();
+        price = json["price"].asString();
+        quantity = json["quantity"].asString();
+    }
 };
