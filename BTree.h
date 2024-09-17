@@ -5,7 +5,7 @@
 class BTree
 {
 public:
-	BTreeNode* root;
+	std::unique_ptr<BTreeNode> root;
 	int t;
 
 	BTree(int _t) : root(nullptr), t(_t) {}
