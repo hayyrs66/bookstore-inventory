@@ -9,17 +9,18 @@ class BTreeNode
 {
 public:
 	vector<Book> keys;
-	vector<BTreeNode*> children;
+	std::vector<std::unique_ptr<BTreeNode>> children;
 	// minimum degree
 	int t;
 	bool leaf;
 	
 	BTreeNode(int _t, bool leaf);
 
+
 	void traverse();
 	BTreeNode* search(const string& isbn);
 	void insertNonFull(const Book& book);
-	void splitChild(int i, BTreeNode* y);
+	void splitChild(int i, std::unique_ptr<BTreeNode>& y);
 	int findKey(const string& isbn);
 	void remove(const string& isbn);
 	void removeFromLeaf(int idx);
@@ -34,5 +35,6 @@ public:
 
 	friend class BTree;
 
-};
+	~BTreeNode() = default;
 
+};
