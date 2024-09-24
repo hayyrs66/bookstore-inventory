@@ -49,6 +49,14 @@ BTreeNode *BTreeNode::search(const std::string &isbn)
 
 void BTree::insert(const Book &k)
 {
+
+    // Check if the book with the same ISBN already exists
+    if (search(k.isbn) != nullptr)
+    {
+        std::cerr << "[insert] Duplicate ISBN detected: " << k.isbn << ". Insertion skipped.\n";
+        return;
+    }
+
     std::cerr << "[insert] Attempting to insert ISBN: " << k.isbn << "\n";
 
     if (!root)
