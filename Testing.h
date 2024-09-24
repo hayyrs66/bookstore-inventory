@@ -8,6 +8,8 @@
 #include <thread>
 #include <chrono>
 #include <algorithm>
+#include "HuffmanTree.h"           // Include Huffman Compression
+#include "ArithmeticCompression.h" // Include Arithmetic Compression
 
 class Testing
 {
@@ -24,46 +26,70 @@ public:
         return Json::parseFromStream(readerBuilder, s, &jsonData, &errs);
     }
 
-    void processChunk(Inventary &inventary, const std::vector<std::string> &lines, int start, int end, std::ofstream &outFile, std::mutex &fileMutex) {
-    for (int i = start; i < end; ++i) {
-        std::istringstream iss(lines[i]);
-        std::string operation, jsonStr;
-        getline(iss, operation, ';');
-        getline(iss, jsonStr, ';');
+    void processChunk(Inventary &inventary, const std::vector<std::string> &lines, int start, int end, std::ofstream &outFile, std::mutex &fileMutex)
+    {
+        for (int i = start; i < end; ++i)
+        {
+            std::istringstream iss(lines[i]);
+            std::string operation, jsonStr;
+            getline(iss, operation, ';');
+            getline(iss, jsonStr, ';');
 
-        // Sanitize JSON string
-        if (!jsonStr.empty() && jsonStr.front() == '"' && jsonStr.back() == '"') {
-            jsonStr = jsonStr.substr(1, jsonStr.size() - 2);
-        }
-        std::string doubleQuotes = "\"\"";
-        std::string singleQuote = "\"";
-        std::size_t pos = 0;
-        while ((pos = jsonStr.find(doubleQuotes, pos)) != std::string::npos) {
-            jsonStr.replace(pos, doubleQuotes.length(), singleQuote);
-            pos += singleQuote.length();
-        }
-
-        // Parse JSON
-        Json::Value jsonData;
-        if (!parseJson(jsonStr, jsonData)) {
-            continue;
-        }
-
-        // Handle search operation
-        if (operation == "SEARCH") {
-            std::vector<Book> results = inventary.searchByName(jsonData["name"].asString());
-            std::ostringstream outputBuffer;
-            for (const auto& book : results) {
-                std::vector<std::string> keyOrder = {"isbn", "name", "author", "category", "price", "quantity"};
-                outputBuffer << inventary.sortedStr(book.toJson(), keyOrder) << std::endl;
+            // Sanitize JSON string
+            if (!jsonStr.empty() && jsonStr.front() == '"' && jsonStr.back() == '"')
+            {
+                jsonStr = jsonStr.substr(1, jsonStr.size() - 2);
+            }
+            std::string doubleQuotes = "\"\"";
+            std::string singleQuote = "\"";
+            std::size_t pos = 0;
+            while ((pos = jsonStr.find(doubleQuotes, pos)) != std::string::npos)
+            {
+                jsonStr.replace(pos, doubleQuotes.length(), singleQuote);
+                pos += singleQuote.length();
             }
 
-            std::lock_guard<std::mutex> lock(fileMutex);
-            outFile << outputBuffer.str();
+            // Parse JSON
+            Json::Value jsonData;
+            if (!parseJson(jsonStr, jsonData))
+            {
+                continue;
+            }
+
+            // Handle search operation
+            if (operation == "SEARCH")
+            {
+                std::vector<Book> results = inventary.searchByName(jsonData["name"].asString());
+                std::ostringstream outputBuffer;
+
+                for (const auto &book : results)
+                {
+                    // Compression for the book name
+                    HuffmanTree huffmanTree(book.name);
+                    ArithmeticCompression arithmeticCompression(book.name);
+
+                    int originalSize = book.name.size() * 16; // Original size: 2 bytes (16 bits) per character
+                    int huffmanSize = huffmanTree.getEncodedSize(book.name);
+                    double arithmeticSize = arithmeticCompression.getCompressedSize(book.name);
+
+                    // Add original and compressed sizes to the output
+                    outputBuffer << "{\"isbn\":\"" << book.isbn << "\","
+                                 << "\"name\":\"" << book.name << "\","
+                                 << "\"author\":\"" << book.author << "\","
+                                 << "\"category\":\"" << book.category << "\","
+                                 << "\"price\":\"" << book.price << "\","
+                                 << "\"quantity\":\"" << book.quantity << "\","
+                                 << "\"namesize\":\"" << originalSize << "\","
+                                 << "\"namesizehuffman\":\"" << huffmanSize << "\","
+                                 << "\"namesizearithmetic\":\"" << arithmeticSize << "\"}\n";
+                }
+
+                // Write output with locking to ensure thread safety
+                std::lock_guard<std::mutex> lock(fileMutex);
+                outFile << outputBuffer.str();
+            }
         }
     }
-}
-
 
     void uploadBooks(const std::string &filename)
     {
@@ -99,8 +125,6 @@ public:
                 pos += 1;
             }
 
-            // Depuración: mostrar la operación y el JSON leído
-
             // Parsear el JSON
             Json::Value jsonData;
             std::istringstream s(jsonStr);
@@ -132,7 +156,6 @@ public:
         }
 
         inFile.close();
-
     }
 
     void executeSearch(const std::string &fileToSearch, const std::string &outputFile)
@@ -150,6 +173,11 @@ public:
         {
             return;
         }
+
+        int equalCount = 0;
+        int decompressCount = 0;
+        int huffmanCount = 0;
+        int arithmeticCount = 0;
 
         std::string line;
         while (getline(inFile, line))
@@ -192,14 +220,58 @@ public:
                 // Write results in the same order as the search query
                 for (const auto &book : results)
                 {
-                    vector<string> keyOrder = {"isbn", "name", "author", "category", "price", "quantity"};
-                    string orderedJsonStr = inventary.sortedStr(book.toJson(), keyOrder);
-                    outFile << orderedJsonStr << endl;
+                    // Compression for the book name
+                    HuffmanTree huffmanTree(book.name);
+                    ArithmeticCompression arithmeticCompression(book.name);
+
+                    int originalSize = book.name.size() * 2;                                    // Original size in bytes
+                    int huffmanSizeBits = huffmanTree.getEncodedSize(book.name);                // Huffman size in bits
+                    double arithmeticSize = arithmeticCompression.getCompressedSize(book.name); // Arithmetic size in bytes
+
+                    cout << "Aritmetic compressed size: " << arithmeticSize << endl;
+
+                    // Convert Huffman size from bits to bytes (divide by 8)
+                    double huffmanSizeBytes = huffmanSizeBits / 8.0;
+
+                    // Write results with compression details
+                    outFile << "{\"isbn\":\"" << book.isbn << "\","
+                            << "\"name\":\"" << book.name << "\","
+                            << "\"author\":\"" << book.author << "\","
+                            << "\"category\":\"" << book.category << "\","
+                            << "\"price\":\"" << book.price << "\","
+                            << "\"quantity\":\"" << book.quantity << "\","
+                            << "\"namesize\":\"" << originalSize << "\","
+                            << "\"namesizehuffman\":\"" << huffmanSizeBits << "\","
+                            << "\"namesizearithmetic\":\"" << arithmeticSize << "\"}\n";
+
+                    // Now update the counters
+                    if (originalSize == huffmanSizeBytes && originalSize == arithmeticSize)
+                    {
+                        equalCount++;
+                    }
+                    else if (originalSize < huffmanSizeBytes && originalSize < arithmeticSize)
+                    {
+                        decompressCount++;
+                    }
+                    else if (huffmanSizeBytes < originalSize && huffmanSizeBytes < arithmeticSize)
+                    {
+                        huffmanCount++;
+                    }
+                    else if (arithmeticSize < originalSize && arithmeticSize < huffmanSizeBytes)
+                    {
+                        arithmeticCount++;
+                    }
                 }
             }
-            // std::cerr << "Searching for book name: " << jsonData["name"].asString() << std::endl;
         }
 
+        // Append the additional four lines at the end of the output file
+        outFile << "Equal: " << equalCount << "\n";
+        outFile << "Decompress: " << decompressCount << "\n";
+        outFile << "Huffman: " << huffmanCount << "\n";
+        outFile << "Arithmetic: " << arithmeticCount << "\n";
+
+        // Close files
         inFile.close();
         outFile.close();
     }
