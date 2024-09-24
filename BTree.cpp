@@ -49,6 +49,13 @@ BTreeNode *BTreeNode::search(const std::string &isbn)
 
 void BTree::insert(const Book &k)
 {
+    // Check if the book with the same ISBN already exists
+    if (search(k.isbn) != nullptr)
+    {
+        std::cerr << "[insert] Duplicate ISBN detected: " << k.isbn << ". Insertion skipped.\n";
+        return;
+    }
+
     std::cerr << "[insert] Attempting to insert ISBN: " << k.isbn << "\n";
 
     if (!root)
@@ -128,7 +135,7 @@ void BTreeNode::insertNonFull(const Book &k)
     }
 }
 
-void BTreeNode::splitChild(int i, std::unique_ptr<BTreeNode>& y)
+void BTreeNode::splitChild(int i, std::unique_ptr<BTreeNode> &y)
 {
     // Asegurarse de que i y t estén dentro de los límites
     if (i < 0 || i >= children.size())
@@ -205,7 +212,6 @@ void BTreeNode::splitChild(int i, std::unique_ptr<BTreeNode>& y)
     }
 }
 
-
 void BTree::remove(const string &isbn)
 {
     if (!root)
@@ -230,35 +236,46 @@ void BTree::remove(const string &isbn)
         cout << "Root node updated after removal" << endl;
     }
 }
-void BTreeNode::remove(const std::string &isbn) {
+void BTreeNode::remove(const std::string &isbn)
+{
     int idx = findKey(isbn);
 
-    if (idx < keys.size() && keys[idx].isbn == isbn) {
-        if (leaf) {
+    if (idx < keys.size() && keys[idx].isbn == isbn)
+    {
+        if (leaf)
+        {
             removeFromLeaf(idx);
-        } else {
+        }
+        else
+        {
             removeFromNonLeaf(idx);
         }
-    } else {
-        if (leaf) {
+    }
+    else
+    {
+        if (leaf)
+        {
             std::cerr << "Key not found in tree\n";
             return;
         }
 
         bool flag = (idx == keys.size());
 
-        if (children[idx]->keys.size() < t) {
+        if (children[idx]->keys.size() < t)
+        {
             fill(idx);
         }
 
-        if (flag && idx > keys.size()) {
+        if (flag && idx > keys.size())
+        {
             children[idx - 1]->remove(isbn);
-        } else {
+        }
+        else
+        {
             children[idx]->remove(isbn);
         }
     }
 }
-
 
 int BTreeNode::findKey(const string &isbn)
 {
@@ -321,20 +338,28 @@ Book BTreeNode::getSucc(int idx)
     return cur->keys[0];
 }
 
-void BTreeNode::fill(int idx) {
-    if (idx != 0 && children[idx - 1]->keys.size() >= t) {
+void BTreeNode::fill(int idx)
+{
+    if (idx != 0 && children[idx - 1]->keys.size() >= t)
+    {
         borrowFromPrev(idx);
-    } else if (idx != keys.size() && children[idx + 1]->keys.size() >= t) {
+    }
+    else if (idx != keys.size() && children[idx + 1]->keys.size() >= t)
+    {
         borrowFromNext(idx);
-    } else {
-        if (idx != keys.size()) {
+    }
+    else
+    {
+        if (idx != keys.size())
+        {
             merge(idx);
-        } else {
+        }
+        else
+        {
             merge(idx - 1);
         }
     }
 }
-
 
 void BTreeNode::borrowFromPrev(int idx)
 {
@@ -343,10 +368,10 @@ void BTreeNode::borrowFromPrev(int idx)
 
     child->keys.insert(child->keys.begin(), keys[idx - 1]);
 
-    if (!child->leaf){
+    if (!child->leaf)
+    {
         child->children.insert(child->children.begin(), std::move(sibling->children[sibling->keys.size()]));
     }
-
 
     keys[idx - 1] = sibling->keys[sibling->keys.size() - 1];
 
@@ -372,9 +397,10 @@ void BTreeNode::borrowFromNext(int idx)
         sibling->children.erase(sibling->children.begin());
 }
 
-void BTreeNode::merge(int idx) {
-    std::unique_ptr<BTreeNode>& child = children[idx];
-    std::unique_ptr<BTreeNode>& sibling = children[idx + 1];
+void BTreeNode::merge(int idx)
+{
+    std::unique_ptr<BTreeNode> &child = children[idx];
+    std::unique_ptr<BTreeNode> &sibling = children[idx + 1];
 
     // Move the middle key from the current node into the child node
     child->keys.push_back(std::move(keys[idx]));
@@ -384,7 +410,8 @@ void BTreeNode::merge(int idx) {
         child->keys.push_back(std::move(sibling->keys[i]));
 
     // Move all children from sibling into child if not a leaf
-    if (!child->leaf) {
+    if (!child->leaf)
+    {
         for (int i = 0; i < sibling->children.size(); ++i)
             child->children.push_back(std::move(sibling->children[i]));
     }
@@ -395,7 +422,6 @@ void BTreeNode::merge(int idx) {
     // Remove the sibling node from children and let unique_ptr handle deletion
     children.erase(children.begin() + idx + 1);
 }
-
 
 void BTreeNode::printNode()
 {
