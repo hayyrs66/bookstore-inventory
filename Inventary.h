@@ -179,6 +179,9 @@ public:
     {
         std::vector<Book> results;
         auto it = bookMap.find(name);
+
+        cout << "==> Buscando libro por nombre: " << name << endl;
+        
         if (it != bookMap.end())
         {
             results.push_back(it->second);
