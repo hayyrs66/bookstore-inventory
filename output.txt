@@ -20,3 +20,4 @@ Equal: 0
 Decompress: 0
 Huffman: 15
 Arithmetic: 0
+Either: 3

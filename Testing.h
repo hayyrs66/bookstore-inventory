@@ -83,7 +83,6 @@ public:
                                  << "\"quantity\":\"" << book.quantity << "\","
                                  << "\"namesize\":\"" << book.name.size() * 2 << "\","
                                  << "\"namesizearithmetic\":\"" << compressedData.size() << "\"}\n";
-
                 }
 
                 // Write output with locking to ensure thread safety
@@ -180,6 +179,7 @@ public:
         int decompressCount = 0;
         int huffmanCount = 0;
         int arithmeticCount = 0;
+        int eitherCount = 0; // Add the "Either" category
 
         std::string line;
         while (getline(inFile, line))
@@ -222,7 +222,7 @@ public:
                 // Write results in the same order as the search query
                 for (const auto &book : results)
                 {
-                    // **Compression for the book name using Arithmetic Compression**
+                    // Compression for the book name using Arithmetic Compression
                     ArithmeticCompression arithmeticCompression(book.name);
                     std::vector<uint8_t> compressedData = arithmeticCompression.Compress(book.name);
 
@@ -233,15 +233,15 @@ public:
                         compressedStr += std::to_string(byte) + " ";
                     }
 
-                    // **Original size**: 2 bytes per character
+                    // Original size: 2 bytes per character
                     int originalSize = book.name.size() * 2;
 
-                    // Huffman compression (assuming HuffmanTree is implemented)
+                    // Huffman compression
                     HuffmanTree huffmanTree(book.name);
                     int huffmanSizeBits = huffmanTree.getEncodedSize(book.name);
                     double huffmanSizeBytes = huffmanSizeBits / 8.0; // Convert from bits to bytes
 
-                    // **Arithmetic size** from the compressed data
+                    // Arithmetic size from the compressed data
                     double arithmeticSize = compressedData.size();
 
                     // Write results with compression details
@@ -255,7 +255,7 @@ public:
                             << "\"namesizehuffman\":\"" << huffmanSizeBits << "\","
                             << "\"namesizearithmetic\":\"" << arithmeticSize << "\"}\n";
 
-                    // **Counters update**
+                    // Now update the counters based on the compression sizes
                     if (originalSize == huffmanSizeBytes && originalSize == arithmeticSize)
                     {
                         equalCount++;
@@ -272,15 +272,20 @@ public:
                     {
                         arithmeticCount++;
                     }
+                    else if (huffmanSizeBytes == arithmeticSize)
+                    {
+                        eitherCount++; // Count when Huffman and Arithmetic sizes are equal
+                    }
                 }
             }
         }
 
-        // Append the additional four lines at the end of the output file
+        // Append the additional lines at the end of the output file
         outFile << "Equal: " << equalCount << "\n";
         outFile << "Decompress: " << decompressCount << "\n";
         outFile << "Huffman: " << huffmanCount << "\n";
         outFile << "Arithmetic: " << arithmeticCount << "\n";
+        outFile << "Either: " << eitherCount << "\n"; // Add the "Either" category
 
         // Close files
         inFile.close();
