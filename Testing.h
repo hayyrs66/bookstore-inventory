@@ -8,8 +8,8 @@
 #include <thread>
 #include <chrono>
 #include <algorithm>
-#include "HuffmanTree.h"           // Include Huffman Compression
-#include "ArithmeticCompression.h" // Include Arithmetic Compression
+#include "HuffmanTree.h"
+#include "ArithmeticCompression.h"
 
 class Testing
 {
@@ -64,24 +64,26 @@ public:
 
                 for (const auto &book : results)
                 {
-                    // Compression for the book name
-                    HuffmanTree huffmanTree(book.name);
-                    ArithmeticCompression arithmeticCompression(book.name);
+                    // Compression for the book name using Arithmetic Compression
+                    ArithmeticCompression arithComp(book.name);
+                    std::vector<uint8_t> compressedData = arithComp.Compress(book.name);
 
-                    int originalSize = book.name.size() * 16; // Original size: 2 bytes (16 bits) per character
-                    int huffmanSize = huffmanTree.getEncodedSize(book.name);
-                    double arithmeticSize = arithmeticCompression.getCompressedSize(book.name);
+                    // Create a string from the compressed data
+                    std::string compressedStr;
+                    for (uint8_t byte : compressedData)
+                    {
+                        compressedStr += std::to_string(byte) + " ";
+                    }
 
-                    // Add original and compressed sizes to the output
                     outputBuffer << "{\"isbn\":\"" << book.isbn << "\","
                                  << "\"name\":\"" << book.name << "\","
                                  << "\"author\":\"" << book.author << "\","
                                  << "\"category\":\"" << book.category << "\","
                                  << "\"price\":\"" << book.price << "\","
                                  << "\"quantity\":\"" << book.quantity << "\","
-                                 << "\"namesize\":\"" << originalSize << "\","
-                                 << "\"namesizehuffman\":\"" << huffmanSize << "\","
-                                 << "\"namesizearithmetic\":\"" << arithmeticSize << "\"}\n";
+                                 << "\"namesize\":\"" << book.name.size() * 2 << "\","
+                                 << "\"namesizearithmetic\":\"" << compressedData.size() << "\"}\n";
+
                 }
 
                 // Write output with locking to ensure thread safety
@@ -220,18 +222,27 @@ public:
                 // Write results in the same order as the search query
                 for (const auto &book : results)
                 {
-                    // Compression for the book name
-                    HuffmanTree huffmanTree(book.name);
+                    // **Compression for the book name using Arithmetic Compression**
                     ArithmeticCompression arithmeticCompression(book.name);
+                    std::vector<uint8_t> compressedData = arithmeticCompression.Compress(book.name);
 
-                    int originalSize = book.name.size() * 2;                                    // Original size in bytes
-                    int huffmanSizeBits = huffmanTree.getEncodedSize(book.name);                // Huffman size in bits
-                    double arithmeticSize = arithmeticCompression.getCompressedSize(book.name); // Arithmetic size in bytes
+                    // Create a string from the compressed data
+                    std::string compressedStr;
+                    for (uint8_t byte : compressedData)
+                    {
+                        compressedStr += std::to_string(byte) + " ";
+                    }
 
-                    cout << "Aritmetic compressed size: " << arithmeticSize << endl;
+                    // **Original size**: 2 bytes per character
+                    int originalSize = book.name.size() * 2;
 
-                    // Convert Huffman size from bits to bytes (divide by 8)
-                    double huffmanSizeBytes = huffmanSizeBits / 8.0;
+                    // Huffman compression (assuming HuffmanTree is implemented)
+                    HuffmanTree huffmanTree(book.name);
+                    int huffmanSizeBits = huffmanTree.getEncodedSize(book.name);
+                    double huffmanSizeBytes = huffmanSizeBits / 8.0; // Convert from bits to bytes
+
+                    // **Arithmetic size** from the compressed data
+                    double arithmeticSize = compressedData.size();
 
                     // Write results with compression details
                     outFile << "{\"isbn\":\"" << book.isbn << "\","
@@ -244,7 +255,7 @@ public:
                             << "\"namesizehuffman\":\"" << huffmanSizeBits << "\","
                             << "\"namesizearithmetic\":\"" << arithmeticSize << "\"}\n";
 
-                    // Now update the counters
+                    // **Counters update**
                     if (originalSize == huffmanSizeBytes && originalSize == arithmeticSize)
                     {
                         equalCount++;

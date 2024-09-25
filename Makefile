@@ -9,7 +9,7 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -g -fsanitize=address  # Añadido -g para de
 
 # Archivos fuente y de cabecera
 SRCS = Book.cpp BTree.cpp BTreeNode.cpp Inventary.cpp Testing.cpp books.cpp
-HEADERS = Book.h BTree.h BTreeNode.h Inventary.h Testing.h
+HEADERS = Book.h BTree.h BTreeNode.h Inventary.h Testing.h ArithmeticCompression.h HuffmanTree.h
 
 # Archivos objeto
 OBJS = $(SRCS:.cpp=.o)
