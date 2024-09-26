@@ -13,10 +13,9 @@ public:
     std::string category;
     std::string price;
     std::string quantity;
-    int longitudaritmetica; // Add this field to store the arithmetic compressed size
+    int longitudaritmetica;
 
-    // Default constructor
-    Book() : longitudaritmetica(0) { // Initialize longitudaritmetica to 0
+    Book() : longitudaritmetica(0) {
     }
 
     // Parameterized constructor
