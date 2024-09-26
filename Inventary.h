@@ -10,7 +10,8 @@
 class Inventary
 {
     BTree tree;
-    unordered_map<string, Book> bookMap;
+    unordered_map<string, Book> isbnToBook;
+    unordered_multimap<string, string> nameToIsbn;
 
 public:
     Inventary(int t) : tree(t) {}
@@ -20,19 +21,23 @@ public:
         std::ofstream outFile(filename);
         if (!outFile.is_open())
         {
+            std::cerr << "Failed to open file: " << filename << std::endl;
             return;
         }
 
-        for (const auto &pair : bookMap)
+        Json::StreamWriterBuilder writerBuilder;
+        writerBuilder["indentation"] = "";
+        writerBuilder["dropNullPlaceholders"] = true;
+        std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
+
+        for (const auto &pair : isbnToBook)
         {
-            Json::Value bookJson = pair.second.toJson();
+            const Book &book = pair.second;
+            Json::Value bookJson = book.toJson();
 
-            Json::StreamWriterBuilder writer;
-            writer["indentation"] = "";
-            writer["dropNullPlaceholders"] = true;
-
-            std::string jsonLine = Json::writeString(writer, bookJson);
-            outFile << jsonLine << std::endl;
+            std::ostringstream oss;
+            writer->write(bookJson, &oss);
+            outFile << oss.str() << std::endl;
         }
 
         outFile.close();
@@ -41,7 +46,8 @@ public:
     void insert(const Book &book)
     {
         tree.insert(book);
-        bookMap[book.name] = book;
+        isbnToBook[book.isbn] = book;
+        nameToIsbn.emplace(book.name, book.isbn);
     }
 
     void remove(const std::string &isbn)
@@ -51,12 +57,21 @@ public:
         {
             tree.remove(isbn);
 
-            auto it = std::find_if(bookMap.begin(), bookMap.end(), [&](const auto &pair)
-            { return pair.second.isbn == isbn; });
-
-            if (it != bookMap.end())
+            auto bookIt = isbnToBook.find(isbn);
+            if (bookIt != isbnToBook.end())
             {
-                bookMap.erase(it);
+                std::string name = bookIt->second.name;
+                isbnToBook.erase(bookIt);
+
+                auto range = nameToIsbn.equal_range(name);
+                for (auto it = range.first; it != range.second; ++it)
+                {
+                    if (it->second == isbn)
+                    {
+                        nameToIsbn.erase(it);
+                        break;
+                    }
+                }
             }
         }
     }
@@ -75,57 +90,58 @@ public:
 
                     if (bookData.isMember("name"))
                     {
-                        std::string newName = bookData["name"].asString();
-                        book.name = newName;
+                        book.name = bookData["name"].asString();
                     }
                     if (bookData.isMember("author"))
                     {
-                        std::string newAuthor = bookData["author"].asString();
-                        book.author = newAuthor;
+                        book.author = bookData["author"].asString();
                     }
                     if (bookData.isMember("category"))
                     {
-                        std::string newCategory = bookData["category"].asString();
-                        book.category = newCategory;
+                        book.category = bookData["category"].asString();
                     }
                     if (bookData.isMember("price"))
                     {
-                        std::string newPrice = bookData["price"].asString();
-                        book.price = newPrice;
+                        book.price = bookData["price"].asString();
                     }
                     if (bookData.isMember("quantity"))
                     {
-                        std::string newQuantity = bookData["quantity"].asString();
-                        book.quantity = newQuantity;
+                        book.quantity = bookData["quantity"].asString();
                     }
+
+                    isbnToBook[isbn] = book;
 
                     if (oldName != book.name)
                     {
-                        auto it = bookMap.find(oldName);
-                        if (it != bookMap.end())
+                        auto range = nameToIsbn.equal_range(oldName);
+                        for (auto it = range.first; it != range.second; ++it)
                         {
-                            bookMap.erase(it);
+                            if (it->second == isbn)
+                            {
+                                nameToIsbn.erase(it);
+                                break;
+                            }
                         }
+                        nameToIsbn.emplace(book.name, isbn);
                     }
-                    bookMap[book.name] = book;
                     break;
                 }
             }
         }
-        // else
-        // {
-        //     std::cerr << "Error: Book with ISBN " << isbn << " not found in the B-tree for PATCH." << std::endl;
-        // }
     }
 
     vector<Book> searchByName(const std::string &name)
     {
         std::vector<Book> results;
-        auto it = bookMap.find(name);
-
-        if (it != bookMap.end())
+        auto range = nameToIsbn.equal_range(name);
+        for (auto it = range.first; it != range.second; ++it)
         {
-            results.push_back(it->second);
+            const std::string &isbn = it->second;
+            auto bookIt = isbnToBook.find(isbn);
+            if (bookIt != isbnToBook.end())
+            {
+                results.push_back(bookIt->second);
+            }
         }
         return results;
     }
@@ -152,7 +168,6 @@ public:
         }
     }
 
-    // Optionally: a method to find a book by ISBN
     Book *findBookByISBN(const std::string &isbn)
     {
         BTreeNode *node = tree.search(isbn);

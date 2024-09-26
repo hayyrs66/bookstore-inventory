@@ -88,7 +88,7 @@ public:
         json["category"] = category;
         json["price"] = price;
         json["quantity"] = quantity;
-        json["longitudaritmetica"] = longitudaritmetica; // Add longitudaritmetica to JSON
+        json["longitudaritmetica"] = longitudaritmetica;
         return json;
     }
 
@@ -100,6 +100,6 @@ public:
         category = json["category"].asString();
         price = json["price"].asString();
         quantity = json["quantity"].asString();
-        longitudaritmetica = json.get("longitudaritmetica", 0).asInt(); // Initialize longitudaritmetica from JSON, default 0 if not present
+        longitudaritmetica = json.get("longitudaritmetica", 0).asInt();
     }
 };

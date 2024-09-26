@@ -35,7 +35,6 @@ public:
             getline(iss, operation, ';');
             getline(iss, jsonStr, ';');
 
-            // Sanitize JSON string
             if (!jsonStr.empty() && jsonStr.front() == '"' && jsonStr.back() == '"')
             {
                 jsonStr = jsonStr.substr(1, jsonStr.size() - 2);
@@ -49,14 +48,12 @@ public:
                 pos += singleQuote.length();
             }
 
-            // Parse JSON
             Json::Value jsonData;
             if (!parseJson(jsonStr, jsonData))
             {
                 continue;
             }
 
-            // Handle search operation
             if (operation == "SEARCH")
             {
                 std::vector<Book> results = inventary.searchByName(jsonData["name"].asString());
@@ -64,11 +61,9 @@ public:
 
                 for (const auto &book : results)
                 {
-                    // Compression for the book name using ArithmeticCompressionInt
                     ArithmeticCompressionInt arithmeticCompression(book.name);
                     std::string compressedData = arithmeticCompression.Compress(book.name);
 
-                    // Calculate the size of the compressed data in bits
                     int arithmeticSize = compressedData.length();
 
                     outputBuffer << "{\"isbn\":\"" << book.isbn << "\","
@@ -81,7 +76,6 @@ public:
                                  << "\"namesizearithmetic\":\"" << arithmeticSize << "\"}\n";
                 }
 
-                // Write output with locking to ensure thread safety
                 std::lock_guard<std::mutex> lock(fileMutex);
                 outFile << outputBuffer.str();
             }
@@ -100,21 +94,18 @@ public:
         Json::CharReaderBuilder readerBuilder;
         std::string errs;
 
-        // Read line by line from the file
         while (getline(inFile, line))
         {
             std::istringstream iss(line);
             std::string operation, jsonStr;
-            getline(iss, operation, ';'); // Read the operation type (INSERT, DELETE, PATCH, etc.)
-            getline(iss, jsonStr, ';');   // Read the corresponding JSON for the operation
+            getline(iss, operation, ';'); 
+            getline(iss, jsonStr, ';');
 
-            // Remove unnecessary quotes around the JSON
             if (!jsonStr.empty() && jsonStr.front() == '"' && jsonStr.back() == '"')
             {
                 jsonStr = jsonStr.substr(1, jsonStr.size() - 2);
             }
 
-            // Replace internal double quotes with single quotes
             size_t pos = 0;
             while ((pos = jsonStr.find("\"\"", pos)) != std::string::npos)
             {
@@ -122,7 +113,6 @@ public:
                 pos += 1;
             }
 
-            // Parse the JSON
             Json::Value jsonData;
             std::istringstream s(jsonStr);
             if (!Json::parseFromStream(readerBuilder, s, &jsonData, &errs))
@@ -130,21 +120,19 @@ public:
                 continue;
             }
 
-            // Process the corresponding operation
             if (operation == "INSERT")
             {
                 Book book;
                 book.fromJson(jsonData);
-
-                inventary.insert(book); // Insert the book into the B-tree and bookMap
+                inventary.insert(book);
             }
             else if (operation == "PATCH")
             {
-                inventary.update(jsonData); // Update book in the B-tree and bookMap
+                inventary.update(jsonData);
             }
             else if (operation == "DELETE")
             {
-                inventary.remove(jsonData["isbn"].asString()); // Remove book from the B-tree and bookMap
+                inventary.remove(jsonData["isbn"].asString());
             }
             else
             {
@@ -153,18 +141,17 @@ public:
         }
 
         inFile.close();
+
     }
 
     void executeSearch(const std::string &fileToSearch, const std::string &outputFile)
     {
-        // Open search query file
         std::ifstream inFile(fileToSearch);
         if (!inFile.is_open())
         {
             return;
         }
 
-        // Prepare output file
         std::ofstream outFile(outputFile);
         if (!outFile.is_open())
         {
@@ -175,7 +162,7 @@ public:
         int decompressCount = 0;
         int huffmanCount = 0;
         int arithmeticCount = 0;
-        int eitherCount = 0; // For cases where Huffman and Arithmetic sizes are equal
+        int eitherCount = 0;
 
         std::string line;
         while (getline(inFile, line))
@@ -185,13 +172,11 @@ public:
             getline(iss, operation, ';');
             getline(iss, jsonStr, ';');
 
-            // Remove leading and trailing quotes
             if (!jsonStr.empty() && jsonStr.front() == '"' && jsonStr.back() == '"')
             {
                 jsonStr = jsonStr.substr(1, jsonStr.size() - 2);
             }
 
-            // Replace duplicated quotes
             size_t pos = 0;
             while ((pos = jsonStr.find("\"\"", pos)) != std::string::npos)
             {
@@ -199,7 +184,6 @@ public:
                 pos += 1;
             }
 
-            // Parse JSON
             Json::CharReaderBuilder readerBuilder;
             Json::Value jsonData;
             std::string errs;
@@ -209,33 +193,21 @@ public:
                 continue;
             }
 
-            // Process search operation
             if (operation == "SEARCH" && jsonData.isMember("name"))
             {
-                // Search books by name
                 std::vector<Book> results = inventary.searchByName(jsonData["name"].asString());
-
-                // Write results in the same order as the search query
                 for (const auto &book : results)
                 {
-                    // Compression for the book name using ArithmeticCompressionInt
                     ArithmeticCompressionInt arithmeticCompression(book.name);
                     std::string compressedData = arithmeticCompression.Compress(book.name);
 
-                    // Original size in bytes (assuming 2 bytes per character)
                     int originalSize = book.name.size() * 2;
-
-                    // Huffman compression
                     HuffmanTree huffmanTree(book.name);
                     int huffmanSizeBits = huffmanTree.getEncodedSize(book.name);
 
-                    // Arithmetic size in bytes
                     int arithmeticSize = (compressedData.length() + 7) / 8;
-
-                    // Convert Huffman size to bytes for comparison
                     int huffmanSizeBytes = (huffmanSizeBits + 7) / 8;
 
-                    // Write results with compression details
                     outFile << "{\"isbn\":\"" << book.isbn << "\","
                             << "\"name\":\"" << book.name << "\","
                             << "\"author\":\"" << book.author << "\","
@@ -246,7 +218,6 @@ public:
                             << "\"namesizehuffman\":\"" << huffmanSizeBits << "\","
                             << "\"namesizearithmetic\":\"" << arithmeticSize << "\"}\n";
 
-                    // Now update the counters based on the compression sizes
                     if (originalSize == huffmanSizeBytes && originalSize == arithmeticSize)
                     {
                         equalCount++;
@@ -267,11 +238,10 @@ public:
                     {
                         eitherCount++;
                     }
+
                 }
             }
         }
-
-        // Append the additional lines at the end of the output file
         outFile << "Equal: " << equalCount << "\n";
         outFile << "Decompress: " << decompressCount << "\n";
         outFile << "Huffman: " << huffmanCount << "\n";
@@ -281,9 +251,9 @@ public:
             outFile << "Either: " << eitherCount << "\n";
         }
 
-        // Close files
         inFile.close();
         outFile.close();
+
     }
 
     void printInventory()
