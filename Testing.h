@@ -9,7 +9,7 @@
 #include <chrono>
 #include <algorithm>
 #include "HuffmanTree.h"
-#include "ArithmeticCompression.h"
+#include "ArithmeticCompressionInt.h"
 
 class Testing
 {
@@ -64,16 +64,12 @@ public:
 
                 for (const auto &book : results)
                 {
-                    // Compression for the book name using Arithmetic Compression
-                    ArithmeticCompression arithComp(book.name);
-                    std::vector<uint8_t> compressedData = arithComp.Compress(book.name);
+                    // Compression for the book name using ArithmeticCompressionInt
+                    ArithmeticCompressionInt arithmeticCompression(book.name);
+                    std::string compressedData = arithmeticCompression.Compress(book.name);
 
-                    // Create a string from the compressed data
-                    std::string compressedStr;
-                    for (uint8_t byte : compressedData)
-                    {
-                        compressedStr += std::to_string(byte) + " ";
-                    }
+                    // Calculate the size of the compressed data in bits
+                    int arithmeticSize = compressedData.length();
 
                     outputBuffer << "{\"isbn\":\"" << book.isbn << "\","
                                  << "\"name\":\"" << book.name << "\","
@@ -81,8 +77,8 @@ public:
                                  << "\"category\":\"" << book.category << "\","
                                  << "\"price\":\"" << book.price << "\","
                                  << "\"quantity\":\"" << book.quantity << "\","
-                                 << "\"namesize\":\"" << book.name.size() * 2 << "\","
-                                 << "\"namesizearithmetic\":\"" << compressedData.size() << "\"}\n";
+                                 << "\"namesize\":\"" << book.name.size() * 8 << "\","
+                                 << "\"namesizearithmetic\":\"" << arithmeticSize << "\"}\n";
                 }
 
                 // Write output with locking to ensure thread safety
@@ -104,21 +100,21 @@ public:
         Json::CharReaderBuilder readerBuilder;
         std::string errs;
 
-        // Leer línea por línea del archivo
+        // Read line by line from the file
         while (getline(inFile, line))
         {
             std::istringstream iss(line);
             std::string operation, jsonStr;
-            getline(iss, operation, ';'); // Leer el tipo de operación (INSERT, DELETE, PATCH, etc.)
-            getline(iss, jsonStr, ';');   // Leer el JSON correspondiente a la operación
+            getline(iss, operation, ';'); // Read the operation type (INSERT, DELETE, PATCH, etc.)
+            getline(iss, jsonStr, ';');   // Read the corresponding JSON for the operation
 
-            // Eliminar comillas innecesarias alrededor del JSON
+            // Remove unnecessary quotes around the JSON
             if (!jsonStr.empty() && jsonStr.front() == '"' && jsonStr.back() == '"')
             {
                 jsonStr = jsonStr.substr(1, jsonStr.size() - 2);
             }
 
-            // Reemplazar comillas dobles internas con comillas simples
+            // Replace internal double quotes with single quotes
             size_t pos = 0;
             while ((pos = jsonStr.find("\"\"", pos)) != std::string::npos)
             {
@@ -126,7 +122,7 @@ public:
                 pos += 1;
             }
 
-            // Parsear el JSON
+            // Parse the JSON
             Json::Value jsonData;
             std::istringstream s(jsonStr);
             if (!Json::parseFromStream(readerBuilder, s, &jsonData, &errs))
@@ -134,25 +130,25 @@ public:
                 continue;
             }
 
-            // Procesar la operación correspondiente
+            // Process the corresponding operation
             if (operation == "INSERT")
             {
                 Book book;
                 book.fromJson(jsonData);
 
-                inventary.insert(book); // Insertar el libro en la B-tree y el bookMap
+                inventary.insert(book); // Insert the book into the B-tree and bookMap
             }
             else if (operation == "PATCH")
             {
-                inventary.update(jsonData); // Actualizar libro en la B-tree y el bookMap
+                inventary.update(jsonData); // Update book in the B-tree and bookMap
             }
             else if (operation == "DELETE")
             {
-                inventary.remove(jsonData["isbn"].asString()); // Eliminar libro de la B-tree y el bookMap
+                inventary.remove(jsonData["isbn"].asString()); // Remove book from the B-tree and bookMap
             }
             else
             {
-                std::cerr << "Operación desconocida: " << operation << std::endl;
+                std::cerr << "Unknown operation: " << operation << std::endl;
             }
         }
 
@@ -179,7 +175,7 @@ public:
         int decompressCount = 0;
         int huffmanCount = 0;
         int arithmeticCount = 0;
-        int eitherCount = 0; // Add the "Either" category
+        int eitherCount = 0; // For cases where Huffman and Arithmetic sizes are equal
 
         std::string line;
         while (getline(inFile, line))
@@ -222,33 +218,28 @@ public:
                 // Write results in the same order as the search query
                 for (const auto &book : results)
                 {
-                    // Compression for the book name using Arithmetic Compression
-                    ArithmeticCompression arithmeticCompression(book.name);
-                    std::vector<uint8_t> compressedData = arithmeticCompression.Compress(book.name);
+                    // Compression for the book name using ArithmeticCompressionInt
+                    ArithmeticCompressionInt arithmeticCompression(book.name);
+                    std::string compressedData = arithmeticCompression.Compress(book.name);
 
-                    // Create a string from the compressed data
-                    std::string compressedStr;
-                    for (uint8_t byte : compressedData)
-                    {
-                        compressedStr += std::to_string(byte) + " ";
-                    }
-
-                    // Original size: 2 bytes per character
+                    // Original size in bytes (assuming 2 bytes per character)
                     int originalSize = book.name.size() * 2;
 
                     // Huffman compression
                     HuffmanTree huffmanTree(book.name);
                     int huffmanSizeBits = huffmanTree.getEncodedSize(book.name);
-                    double huffmanSizeBytes = huffmanSizeBits / 8.0; // Convert from bits to bytes
 
-                    // Arithmetic size from the compressed data
-                    double arithmeticSize = compressedData.size();
+                    // Arithmetic size in bytes
+                    int arithmeticSize = (compressedData.length() + 7) / 8;
+
+                    // Convert Huffman size to bytes for comparison
+                    int huffmanSizeBytes = (huffmanSizeBits + 7) / 8;
 
                     // Write results with compression details
                     outFile << "{\"isbn\":\"" << book.isbn << "\","
                             << "\"name\":\"" << book.name << "\","
                             << "\"author\":\"" << book.author << "\","
-                            << "\"category\":\"" << book.category << "\","
+                            << "\"category\":" << (book.category.empty() ? "null" : "\"" + book.category + "\"") << ","
                             << "\"price\":\"" << book.price << "\","
                             << "\"quantity\":\"" << book.quantity << "\","
                             << "\"namesize\":\"" << originalSize << "\","
@@ -264,17 +255,17 @@ public:
                     {
                         decompressCount++;
                     }
-                    else if (huffmanSizeBytes < originalSize && huffmanSizeBytes < arithmeticSize)
+                    else if (huffmanSizeBytes <= arithmeticSize && huffmanSizeBytes < originalSize)
                     {
                         huffmanCount++;
                     }
-                    else if (arithmeticSize < originalSize && arithmeticSize < huffmanSizeBytes)
+                    else if (arithmeticSize < huffmanSizeBytes && arithmeticSize < originalSize)
                     {
                         arithmeticCount++;
                     }
-                    else if (huffmanSizeBytes == arithmeticSize)
+                    else if (huffmanSizeBytes == arithmeticSize && huffmanSizeBytes < originalSize)
                     {
-                        eitherCount++; // Count when Huffman and Arithmetic sizes are equal
+                        eitherCount++;
                     }
                 }
             }
@@ -285,7 +276,10 @@ public:
         outFile << "Decompress: " << decompressCount << "\n";
         outFile << "Huffman: " << huffmanCount << "\n";
         outFile << "Arithmetic: " << arithmeticCount << "\n";
-        outFile << "Either: " << eitherCount << "\n"; // Add the "Either" category
+        if (eitherCount > 0)
+        {
+            outFile << "Either: " << eitherCount << "\n";
+        }
 
         // Close files
         inFile.close();
