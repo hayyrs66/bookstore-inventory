@@ -1,7 +1,6 @@
-#include "Inventary.h"
+#include "headers/Inventary.h"
 #include <string>
 #include <vector>
-
 #include <json/json.h>
 #include <string>
 #include <vector>
