@@ -12,45 +12,49 @@ private:
     {
         char ch;
         int freq;
-        Node* _left, *_right;
+        Node *_left, *_right;
 
         Node(char ch, int freq) : ch(ch), freq(freq), _left(nullptr), _right(nullptr) {}
-        ~Node() { delete _left; delete _right; }
+        ~Node()
+        {
+            delete _left;
+            delete _right;
+        }
     };
 
-    Node* root;
+    Node *root;
 
     struct CompareNodes
     {
-        bool operator()(Node* l, Node* r) const
+        bool operator()(Node *l, Node *r) const
         {
             if (l->freq == r->freq)
+                return l->ch > r->ch;
             {
-                if (l->ch != '\0' && r->ch != '\0')
-                {
-                    return l->ch > r->ch;
-                }
-                return l->ch == '\0';
+                // if (l->ch != '\0' && r->ch != '\0')
+                // {
+                // }
+                // return l->ch == '\0';
             }
             return l->freq > r->freq;
         }
     };
 
-    void generateCodes(Node* node, string str, unordered_map<char, string>& huffmanCodes)
+    void generateCodes(Node *node, string str, unordered_map<char, string> &huffmanCodes)
     {
         if (!node)
             return;
 
         if (!node->_left && !node->_right)
         {
-            huffmanCodes[node->ch] = str.empty() ? "0" : str; 
+            huffmanCodes[node->ch] = str.empty() ? "0" : str;
         }
 
         generateCodes(node->_left, str + "0", huffmanCodes);
         generateCodes(node->_right, str + "1", huffmanCodes);
     }
 
-    void buildHuffmanTree(const string& data)
+    void buildHuffmanTree(const string &data)
     {
         if (data.empty())
             return;
@@ -61,24 +65,24 @@ private:
             frequency[ch]++;
         }
 
-        priority_queue<Node*, vector<Node*>, CompareNodes> pq;
+        priority_queue<Node *, vector<Node *>, CompareNodes> pq;
 
-        for (const auto& pair : frequency)
+        for (const auto &pair : frequency)
         {
             pq.push(new Node(pair.first, pair.second));
         }
 
         while (pq.size() > 1)
         {
-            Node* temp = pq.top();
+            Node *temp = pq.top();
             pq.pop();
-            Node* newLeft = temp;
+            Node *newLeft = temp;
 
             temp = pq.top();
             pq.pop();
-            Node* newRight = temp;
+            Node *newRight = temp;
 
-            Node* newNode = new Node('\0', newLeft->freq + newRight->freq);
+            Node *newNode = new Node('\0', newLeft->freq + newRight->freq);
             newNode->_left = newLeft;
             newNode->_right = newRight;
             pq.push(newNode);
@@ -89,14 +93,14 @@ private:
     }
 
 public:
-    HuffmanTree(const string& data)
+    HuffmanTree(const string &data)
     {
         buildHuffmanTree(data);
     }
 
     ~HuffmanTree() { delete root; }
 
-    string encode(const string& data)
+    string encode(const string &data)
     {
         unordered_map<char, string> huffmanCodes;
         generateCodes(root, "", huffmanCodes);
@@ -109,7 +113,7 @@ public:
         return encodedString;
     }
 
-    int getEncodedSize(const string& data)
+    int getEncodedSize(const string &data)
     {
         string encodedString = encode(data);
         return encodedString.size();
