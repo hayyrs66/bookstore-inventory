@@ -10,6 +10,7 @@
 #include <algorithm>
 #include "HuffmanTree.h"
 #include "ArithmeticCompressionInt.h"
+#include "Des.h"
 
 class Testing
 {
@@ -71,9 +72,9 @@ public:
                                  << "\"author\":\"" << book.author << "\","
                                  << "\"category\":\"" << book.category << "\","
                                  << "\"price\":\"" << book.price << "\","
-                                 << "\"quantity\":\"" << book.quantity << "\","
-                                 << "\"namesize\":\"" << book.name.size() * 8 << "\","
-                                 << "\"namesizearithmetic\":\"" << arithmeticSize << "\"}\n";
+                                 << "\"quantity\":\"" << book.quantity << "\"}/n";
+                    //  << "\"namesize\":\"" << book.name.size() * 8 << "\","
+                    //  << "\"namesizearithmetic\":\"" << arithmeticSize << "\"}\n";
                 }
 
                 std::lock_guard<std::mutex> lock(fileMutex);
@@ -98,7 +99,7 @@ public:
         {
             std::istringstream iss(line);
             std::string operation, jsonStr;
-            getline(iss, operation, ';'); 
+            getline(iss, operation, ';');
             getline(iss, jsonStr, ';');
 
             if (!jsonStr.empty() && jsonStr.front() == '"' && jsonStr.back() == '"')
@@ -141,10 +142,9 @@ public:
         }
 
         inFile.close();
-
     }
 
-    void executeSearch(const std::string &fileToSearch, const std::string &outputFile)
+    void executeSearch(const std::string &fileToSearch, const std::string &outputFile, const std::string &encryptedOutputFile, const std::string &key)
     {
         std::ifstream inFile(fileToSearch);
         if (!inFile.is_open())
@@ -213,10 +213,10 @@ public:
                             << "\"author\":\"" << book.author << "\","
                             << "\"category\":" << (book.category.empty() ? "null" : "\"" + book.category + "\"") << ","
                             << "\"price\":\"" << book.price << "\","
-                            << "\"quantity\":\"" << book.quantity << "\","
-                            << "\"namesize\":\"" << originalSize << "\","
-                            << "\"namesizehuffman\":\"" << huffmanSizeBits << "\","
-                            << "\"namesizearithmetic\":\"" << arithmeticSize << "\"}\n";
+                            << "\"quantity\":\"" << book.quantity << "\"}\n";
+                    // << "\"namesize\":\"" << originalSize << "\","
+                    // << "\"namesizehuffman\":\"" << huffmanSizeBits << "\","
+                    // << "\"namesizearithmetic\":\"" << arithmeticSize << "\"}\n";
 
                     if (originalSize == huffmanSizeBytes && originalSize == arithmeticSize)
                     {
@@ -238,22 +238,23 @@ public:
                     {
                         eitherCount++;
                     }
-
                 }
             }
         }
-        outFile << "Equal: " << equalCount << "\n";
-        outFile << "Decompress: " << decompressCount << "\n";
-        outFile << "Huffman: " << huffmanCount << "\n";
-        outFile << "Arithmetic: " << arithmeticCount << "\n";
-        if (eitherCount > 0)
-        {
-            outFile << "Either: " << eitherCount << "\n";
-        }
+        // outFile << "Equal: " << equalCount << "\n";
+        // outFile << "Decompress: " << decompressCount << "\n";
+        // outFile << "Huffman: " << huffmanCount << "\n";
+        // outFile << "Arithmetic: " << arithmeticCount << "\n";
+        // if (eitherCount > 0)
+        // {
+        //     outFile << "Either: " << eitherCount << "\n";
+        // }
 
         inFile.close();
         outFile.close();
 
+        Des des;
+        des.encryptFile(outputFile, encryptedOutputFile, key);
     }
 
     void printInventory()
