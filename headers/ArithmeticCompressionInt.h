@@ -147,7 +147,7 @@ public:
             high = static_cast<uint16_t>(low + (range * probabilities[c].second) / scale - 1);
             low = static_cast<uint16_t>(low + (range * probabilities[c].first) / scale);
 
-            while (true) {
+            while (true) {  
                 if ((high & MSD) == (low & MSD)) {
                     // Shift out the most significant bit
                 }
