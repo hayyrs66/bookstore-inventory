@@ -1,6 +1,6 @@
 # Variables
 CXX = g++
-CXXFLAGS = -Wall -std=c++17 -Iheaders/jsoncpp/include  # Incluye los headers de jsoncpp
+CXXFLAGS = -Wall -std=c++17 -Iheaders/jsoncpp/include -lssl -lcrypto  # Incluye los headers de jsoncpp
 LDFLAGS = -Lheaders/jsoncpp/lib -ljsoncpp  # Enlaza con la librería jsoncpp localmente
 SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:.cpp=.o)
