@@ -15,7 +15,7 @@ For file encryption, the `encryptFile` method reads the entire content of the in
 
 The reasoning behind these implementation choices was driven by the need to create a secure and efficient encryption mechanism that could protect the application's sensitive information. By leveraging OpenSSL for DES operations, I ensured that the encryption process adhered to industry standards and benefited from OpenSSL's optimized performance and reliability.
 
-The decision to use Electronic Codebook (ECB) mode, despite its known vulnerabilities such as pattern leakage, was primarily for educational purposes to demonstrate the fundamentals of block cipher encryption. Additionally, implementing a padding scheme was essential to handle plaintexts of varying lengths, ensuring that all data could be securely encrypted without loss or corruption.
+The decision to use Electronic Codebook (ECB) mode, despite its known vulnerabilities such as pattern leakage, was primarily used because it was a requirement to demonstrate the fundamentals of block cipher encryption. Additionally, implementing a padding scheme was essential to handle plaintexts of varying lengths, ensuring that all data could be securely encrypted without loss or corruption.
 
 ## Recommendations
 
